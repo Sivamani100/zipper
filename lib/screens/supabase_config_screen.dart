@@ -90,7 +90,7 @@ class _SupabaseConfigScreenState extends State<SupabaseConfigScreen> {
               
               Text(
                 'Connect Supabase',
-                style: GoogleFonts.outfit(
+                style: GoogleFonts.openSans(
                   fontSize: 26,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
@@ -101,7 +101,7 @@ class _SupabaseConfigScreenState extends State<SupabaseConfigScreen> {
               Text(
                 'Enter your project API keys to enable rooms, real-time chat, and multiplayer gameplay.',
                 textAlign: TextAlign.center,
-                style: GoogleFonts.outfit(
+                style: GoogleFonts.openSans(
                   fontSize: 14,
                   color: Colors.black54,
                 ),
@@ -128,7 +128,7 @@ class _SupabaseConfigScreenState extends State<SupabaseConfigScreen> {
                     children: [
                       Text(
                         'PROJECT URL',
-                        style: GoogleFonts.outfit(
+                        style: GoogleFonts.openSans(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
                           color: Colors.grey.shade600,
@@ -166,7 +166,7 @@ class _SupabaseConfigScreenState extends State<SupabaseConfigScreen> {
 
                       Text(
                         'ANON API KEY',
-                        style: GoogleFonts.outfit(
+                        style: GoogleFonts.openSans(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
                           color: Colors.grey.shade600,
@@ -237,7 +237,7 @@ class _SupabaseConfigScreenState extends State<SupabaseConfigScreen> {
                               )
                             : Text(
                                 'Save and Connect',
-                                style: GoogleFonts.outfit(
+                                style: GoogleFonts.openSans(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 15,
@@ -258,7 +258,7 @@ class _SupabaseConfigScreenState extends State<SupabaseConfigScreen> {
                   Expanded(
                     child: Text(
                       'API keys are stored securely in local device storage and sent only to Supabase.',
-                      style: GoogleFonts.outfit(fontSize: 12, color: Colors.black45),
+                      style: GoogleFonts.openSans(fontSize: 12, color: Colors.black45),
                     ),
                   ),
                 ],

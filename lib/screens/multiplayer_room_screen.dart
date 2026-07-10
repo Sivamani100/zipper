@@ -1,14 +1,12 @@
 import 'dart:async';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../game/zip_game.dart';
 import '../models/game_state.dart';
 import '../models/level_data.dart';
 import '../models/level_model.dart';
 import '../services/supabase_service.dart';
-import '../services/webrtc_service.dart';
 import '../utils/audio_manager.dart';
 import '../widgets/control_panel.dart';
 
@@ -21,28 +19,7 @@ class MultiplayerRoomScreen extends StatefulWidget {
   State<MultiplayerRoomScreen> createState() => _MultiplayerRoomScreenState();
 }
 
-class _KeepAliveVideoRenderer extends StatefulWidget {
-  final RTCVideoRenderer renderer;
-  const _KeepAliveVideoRenderer({required this.renderer});
 
-  @override
-  State<_KeepAliveVideoRenderer> createState() => _KeepAliveVideoRendererState();
-}
-
-class _KeepAliveVideoRendererState extends State<_KeepAliveVideoRenderer> with AutomaticKeepAliveClientMixin {
-  @override
-  bool get wantKeepAlive => true;
-
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-    return SizedBox(
-      width: 1,
-      height: 1,
-      child: RTCVideoView(widget.renderer),
-    );
-  }
-}
 
 class _MultiplayerRoomScreenState extends State<MultiplayerRoomScreen> {
   final _messageController = TextEditingController();
@@ -53,12 +30,7 @@ class _MultiplayerRoomScreenState extends State<MultiplayerRoomScreen> {
   var _messages = <Map<String, dynamic>>[];
   StreamSubscription? _msgSub;
 
-  // WebRTC voice call elements
-  WebRTCService? _webrtcService;
-  final _remoteAudioRenderer = RTCVideoRenderer();
-  bool _isInCall = false;
-  String _callStatus = 'Disconnected';
-  dynamic _signalingChannel;
+
 
   // Local game board elements
   GameState? _gameState;
@@ -85,7 +57,6 @@ class _MultiplayerRoomScreenState extends State<MultiplayerRoomScreen> {
   @override
   void initState() {
     super.initState();
-    _remoteAudioRenderer.initialize();
     _subscribeRoom();
     _subscribeMessages();
     _startTimer();
@@ -94,19 +65,11 @@ class _MultiplayerRoomScreenState extends State<MultiplayerRoomScreen> {
   @override
   void dispose() {
     _cooldownTimer?.cancel();
-    if (_roomData != null) {
-      final isCreator = _roomData!['creator_id'] == SupabaseService.currentUser?.id;
-      SupabaseService.updateCallStatus(widget.roomId, isCreator, false);
-      SupabaseService.clearSignaling(widget.roomId);
-    }
     _roomSub?.cancel();
     _msgSub?.cancel();
     _timer?.cancel();
     _messageController.dispose();
     _chatScrollController.dispose();
-    _webrtcService?.close();
-    _signalingChannel?.unsubscribe();
-    _remoteAudioRenderer.dispose();
     super.dispose();
   }
 
@@ -157,6 +120,16 @@ class _MultiplayerRoomScreenState extends State<MultiplayerRoomScreen> {
           if (data['opponent_id'] != null) {
             SupabaseService.updateWinner(widget.roomId, data['opponent_id'] as String);
           }
+        }
+      }
+
+      // Auto-advance level if BOTH players are ready
+      final creatorReady = data['creator_calling'] as bool? ?? false;
+      final opponentReady = data['opponent_calling'] as bool? ?? false;
+      if (creatorReady && opponentReady) {
+        if (isCreator) {
+          debugPrint('[MultiplayerRoom] Both players are ready. Creator advancing room level...');
+          SupabaseService.advanceToNextLevel(widget.roomId, _nextGridSize.toInt());
         }
       }
     });
@@ -274,120 +247,6 @@ class _MultiplayerRoomScreenState extends State<MultiplayerRoomScreen> {
   }
 
   // ==========================================
-  // WebRTC Audio Call Control
-  // ==========================================
-
-  void _toggleVoiceCall() async {
-    AudioManager.playClick();
-    if (_roomData == null) return;
-
-    final isCreator = _roomData!['creator_id'] == SupabaseService.currentUser?.id;
-    final opponentId = isCreator ? _roomData!['opponent_id'] as String? : _roomData!['creator_id'] as String;
-
-    if (opponentId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Waiting for an opponent to join before calling!')),
-      );
-      return;
-    }
-
-    if (_isInCall) {
-      // Disconnect call
-      await _webrtcService?.close();
-      _signalingChannel?.unsubscribe();
-      setState(() {
-        _webrtcService = null;
-        _isInCall = false;
-        _callStatus = 'Disconnected';
-      });
-      SupabaseService.updateCallStatus(widget.roomId, isCreator, false);
-    } else {
-      // Connect Call
-      final opponentCalling = isCreator 
-          ? (_roomData!['opponent_calling'] as bool? ?? false) 
-          : (_roomData!['creator_calling'] as bool? ?? false);
-
-      if (!opponentCalling) {
-        // We are joining first, clear old stale signals
-        SupabaseService.clearSignaling(widget.roomId);
-      }
-
-      setState(() {
-        _callStatus = 'Connecting...';
-        _isInCall = true;
-      });
-      SupabaseService.updateCallStatus(widget.roomId, isCreator, true);
-
-      _webrtcService = WebRTCService(
-        roomId: widget.roomId,
-        opponentId: opponentId,
-        onRemoteStreamUpdate: (stream) {
-          if (mounted) {
-            setState(() {
-              _remoteAudioRenderer.srcObject = stream;
-              if (stream != null) {
-                _callStatus = 'Voice Connected';
-              }
-            });
-          }
-        },
-        onConnectionStateChange: (state) {
-          if (mounted) {
-            setState(() {
-              _callStatus = state;
-            });
-          }
-        },
-      );
-
-      try {
-        await _webrtcService!.initAudio();
-        await _webrtcService!.initializePeerConnection();
-
-        // Subscribe to signaling packets from the peer
-        _signalingChannel = SupabaseService.subscribeSignaling(
-          roomId: widget.roomId,
-          userId: SupabaseService.currentUser!.id,
-          onSignal: (signal) {
-            _webrtcService?.handleSignaling(signal);
-          },
-        );
-
-        // If the opponent is already in the call, we are joining second and should process their existing signals
-        if (opponentCalling) {
-          debugPrint('[MultiplayerRoom] We are joining second. Processing pending signaling...');
-          final pending = await SupabaseService.fetchPendingSignaling(widget.roomId, SupabaseService.currentUser!.id);
-          for (final sig in pending) {
-            await _webrtcService?.handleSignaling(sig);
-          }
-          debugPrint('[MultiplayerRoom] Initiating call offer...');
-          await _webrtcService!.startCall();
-        } else {
-          debugPrint('[MultiplayerRoom] We are joining first. Waiting for opponent...');
-        }
-      } catch (e) {
-        setState(() {
-          _isInCall = false;
-          _callStatus = 'Call Failed';
-        });
-        SupabaseService.updateCallStatus(widget.roomId, isCreator, false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Microphone permission or WebRTC error: $e')),
-        );
-      }
-    }
-  }
-
-  void _toggleMuteMic() {
-    AudioManager.playClick();
-    if (_webrtcService != null) {
-      setState(() {
-        _webrtcService!.toggleMute();
-      });
-    }
-  }
-
-  // ==========================================
   // Chat Messaging
   // ==========================================
 
@@ -403,9 +262,13 @@ class _MultiplayerRoomScreenState extends State<MultiplayerRoomScreen> {
   // Level Progression Actions
   // ==========================================
 
-  void _advanceToNextLevel() async {
+  void _requestNextLevel() async {
     AudioManager.playClick();
-    await SupabaseService.advanceToNextLevel(widget.roomId, _nextGridSize.toInt());
+    if (_roomData == null) return;
+    
+    final isCreator = _roomData!['creator_id'] == SupabaseService.currentUser?.id;
+    debugPrint('[MultiplayerRoom] Client requested next level. Marking ready...');
+    await SupabaseService.updateReadyForNext(widget.roomId, isCreator, true);
   }
 
   @override
@@ -430,7 +293,10 @@ class _MultiplayerRoomScreenState extends State<MultiplayerRoomScreen> {
     final winnerId = _roomData!['winner_id'];
     final isWinner = winnerId == SupabaseService.currentUser?.id;
 
-    final opponentCalling = isCreator 
+    final myReady = isCreator 
+        ? (_roomData!['creator_calling'] as bool? ?? false) 
+        : (_roomData!['opponent_calling'] as bool? ?? false);
+    final opReady = isCreator 
         ? (_roomData!['opponent_calling'] as bool? ?? false) 
         : (_roomData!['creator_calling'] as bool? ?? false);
 
@@ -443,107 +309,36 @@ class _MultiplayerRoomScreenState extends State<MultiplayerRoomScreen> {
         elevation: 0.5,
         title: Text(
           _roomData!['name'] as String? ?? 'Arena',
-          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18),
+          style: GoogleFonts.openSans(fontWeight: FontWeight.bold, fontSize: 18),
         ),
-        actions: [
-          // Voice Call Action Icon
-          IconButton(
-            icon: Icon(
-              _isInCall 
-                  ? Icons.call_end_rounded 
-                  : (opponentCalling ? Icons.phone_callback_rounded : Icons.phone_in_talk_rounded),
-              color: _isInCall 
-                  ? Colors.redAccent 
-                  : (opponentCalling ? Colors.orange : themeColor),
-            ),
-            tooltip: _isInCall 
-                ? 'Leave Voice' 
-                : (opponentCalling ? 'Join Opponent\'s Call' : 'Join Voice'),
-            onPressed: _toggleVoiceCall,
-          ),
-          if (_isInCall)
-            IconButton(
-              icon: Icon(
-                _webrtcService?.isMicMuted == true ? Icons.mic_off_rounded : Icons.mic_rounded,
-                color: _webrtcService?.isMicMuted == true ? Colors.red : Colors.green,
-              ),
-              onPressed: _toggleMuteMic,
-            ),
-        ],
+        actions: const [],
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            // Voice invite banner if opponent is in call and we are not
-            if (opponentCalling && !_isInCall)
-              Container(
-                color: Colors.orange.shade100,
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.phone_callback_rounded, color: Colors.orangeAccent),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Opponent has joined the voice call!',
-                          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.orange.shade900, fontSize: 13),
-                        ),
-                      ],
-                    ),
-                    ElevatedButton.icon(
-                      onPressed: _toggleVoiceCall,
-                      icon: const Icon(Icons.phone_in_talk_rounded, size: 14, color: Colors.white),
-                      label: const Text('Join Call', style: TextStyle(color: Colors.white)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10.0),
+          child: Column(
+            children: [
+              // Main Arena (Lobby / Play Boards)
+              Expanded(
+                child: opponentId == null
+                    ? _buildWaitingLobby(themeColor)
+                    : _buildMatchArena(
+                        themeColor,
+                        mySolved,
+                        opSolved,
+                        mySolveTime,
+                        opSolveTime,
+                        winnerId,
+                        isWinner,
+                        myReady,
+                        opReady,
                       ),
-                    ),
-                  ],
-                ),
               ),
 
-            // Voice status indicator if active
-            if (_isInCall)
-              Container(
-                width: double.infinity,
-                color: Colors.blue.shade50,
-                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const SizedBox(
-                      width: 10,
-                      height: 10,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.blue),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Voice Channel: $_callStatus',
-                      style: GoogleFonts.outfit(fontSize: 12, color: Colors.blue.shade900, fontWeight: FontWeight.w600),
-                    ),
-                  ],
-                ),
-              ),
-
-            // Main Arena (Lobby / Play Boards)
-            Expanded(
-              child: opponentId == null
-                  ? _buildWaitingLobby(themeColor)
-                  : _buildMatchArena(themeColor, mySolved, opSolved, mySolveTime, opSolveTime, winnerId, isWinner),
-            ),
-
-            // Persistent Chat Drawer (hidden during voice calls)
-            if (!_isInCall) _buildPersistentChatDrawer(themeColor),
-            
-            // WebRTC silent audio playout component
-            if (_isInCall && _remoteAudioRenderer.srcObject != null)
-              _KeepAliveVideoRenderer(renderer: _remoteAudioRenderer),
-          ],
+              // Persistent Chat Drawer
+              if (opponentId != null) _buildPersistentChatDrawer(themeColor),
+            ],
+          ),
         ),
       ),
     );
@@ -565,7 +360,7 @@ class _MultiplayerRoomScreenState extends State<MultiplayerRoomScreen> {
               const SizedBox(height: 24),
               Text(
                 'Waiting for Opponent...',
-                style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold),
+                style: GoogleFonts.openSans(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Text(
@@ -582,7 +377,7 @@ class _MultiplayerRoomScreenState extends State<MultiplayerRoomScreen> {
                 ),
                 child: SelectableText(
                   widget.roomId,
-                  style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15, color: themeColor),
+                  style: GoogleFonts.openSans(fontWeight: FontWeight.bold, fontSize: 15, color: themeColor),
                 ),
               ),
             ],
@@ -601,6 +396,8 @@ class _MultiplayerRoomScreenState extends State<MultiplayerRoomScreen> {
     dynamic opSolveTime,
     dynamic winnerId,
     bool isWinner,
+    bool myReady,
+    bool opReady,
   ) {
     // Determine banner notifications
     final opponentCompleted = opSolved == true;
@@ -630,7 +427,7 @@ class _MultiplayerRoomScreenState extends State<MultiplayerRoomScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(6)),
-                child: Text('${_roomData!['grid_size']}x${_roomData!['grid_size']}', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: themeColor)),
+                child: Text('${_roomData!['grid_size']}x${_roomData!['grid_size']}', style: GoogleFonts.openSans(fontWeight: FontWeight.bold, color: themeColor)),
               ),
 
               // Opponent Status
@@ -650,24 +447,43 @@ class _MultiplayerRoomScreenState extends State<MultiplayerRoomScreen> {
         // Opponent Done Banner
         if (displayDoneBanner)
           Container(
-            color: Colors.red.shade100,
+            color: Colors.red.shade50,
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             child: Column(
               children: [
                 Text(
                   'Your opponent has finished the puzzle!',
-                  style: GoogleFonts.outfit(color: Colors.red.shade900, fontWeight: FontWeight.bold),
+                  style: GoogleFonts.openSans(color: Colors.red.shade900, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 6),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    ElevatedButton(
-                      onPressed: _advanceToNextLevel,
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                      child: const Text('Next Puzzle', style: TextStyle(color: Colors.white)),
-                    ),
+                    myReady
+                        ? Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.red),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Waiting for Opponent...',
+                                style: GoogleFonts.openSans(color: Colors.red.shade900, fontWeight: FontWeight.bold, fontSize: 13),
+                              ),
+                            ],
+                          )
+                        : ElevatedButton(
+                            onPressed: _requestNextLevel,
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                            child: Text(
+                              opReady ? 'Next Puzzle (Opponent is waiting! ⏳)' : 'Next Puzzle',
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ),
                     const SizedBox(width: 12),
                     OutlinedButton(
                       onPressed: () {
@@ -687,20 +503,20 @@ class _MultiplayerRoomScreenState extends State<MultiplayerRoomScreen> {
         // Game Solved Board Overlay (Winner screen)
         if (winnerId != null)
           Container(
-            color: isWinner ? Colors.green.shade100 : Colors.blue.shade100,
+            color: isWinner ? Colors.green.shade50 : Colors.blue.shade50,
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
                 Text(
                   isWinner ? '🎉 Victory! You won this round!' : 'Winner is Opponent!',
-                  style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: GoogleFonts.openSans(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('Next Grid Size:', style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.bold)),
+                    Text('Next Grid Size:', style: GoogleFonts.openSans(fontSize: 12, fontWeight: FontWeight.bold)),
                     const SizedBox(width: 8),
                     DropdownButton<double>(
                       value: _nextGridSize,
@@ -720,11 +536,30 @@ class _MultiplayerRoomScreenState extends State<MultiplayerRoomScreen> {
                       ],
                     ),
                     const SizedBox(width: 16),
-                    ElevatedButton(
-                      onPressed: _advanceToNextLevel,
-                      style: ElevatedButton.styleFrom(backgroundColor: themeColor),
-                      child: const Text('Next Match Puzzle', style: TextStyle(color: Colors.white)),
-                    ),
+                    myReady
+                        ? Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: themeColor),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Waiting for Opponent...',
+                                style: GoogleFonts.openSans(fontSize: 13, fontWeight: FontWeight.bold, color: themeColor),
+                              ),
+                            ],
+                          )
+                        : ElevatedButton(
+                            onPressed: _requestNextLevel,
+                            style: ElevatedButton.styleFrom(backgroundColor: themeColor),
+                            child: Text(
+                              opReady ? 'Next Match Puzzle (Agree! 🤝)' : 'Next Match Puzzle',
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ),
                   ],
                 ),
               ],
@@ -735,10 +570,7 @@ class _MultiplayerRoomScreenState extends State<MultiplayerRoomScreen> {
         Expanded(
           child: _zipGame != null && _gameState != null
               ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: GameWidget(game: _zipGame!),
-                  ),
+                  child: GameWidget(game: _zipGame!),
                 )
               : const Center(child: CircularProgressIndicator()),
         ),
@@ -779,7 +611,7 @@ class _MultiplayerRoomScreenState extends State<MultiplayerRoomScreen> {
                 const SizedBox(width: 6),
                 Text(
                   'Match Chat',
-                  style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black54),
+                  style: GoogleFonts.openSans(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black54),
                 ),
               ],
             ),

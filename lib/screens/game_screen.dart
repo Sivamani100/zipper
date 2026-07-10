@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../utils/audio_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../game/zip_game.dart';
@@ -15,6 +16,7 @@ import '../services/supabase_service.dart';
 import 'supabase_config_screen.dart';
 import 'auth_screen.dart';
 import 'multiplayer_lobby_screen.dart';
+import 'developer_profile_screen.dart';
 
 
 class GameScreen extends StatefulWidget {
@@ -406,6 +408,44 @@ class _GameScreenState extends State<GameScreen> {
                         },
                       ),
                       const Divider(height: 1),
+                      ListTile(
+                        leading: const Icon(Icons.person_rounded, color: Color(0xFF0A66C2)),
+                        title: const Text('Developer', style: TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: const Text('Meet the founder and creator of Zipper'),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const DeveloperProfileScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: const Icon(Icons.privacy_tip_rounded, color: Color(0xFF0A66C2)),
+                        title: const Text('Privacy Policy', style: TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: const Text('Read our data collection and privacy terms'),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () {
+                          Navigator.pop(context);
+                          _showPrivacyPolicy();
+                        },
+                      ),
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: const Icon(Icons.description_rounded, color: Color(0xFF0A66C2)),
+                        title: const Text('Terms of Service', style: TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: const Text('Read our user agreement and guidelines'),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () {
+                          Navigator.pop(context);
+                          _showTermsOfService();
+                        },
+                      ),
+                      const Divider(height: 1),
                       const SizedBox(height: 24),
                       ElevatedButton.icon(
                         icon: const Icon(Icons.refresh_rounded, color: Colors.red),
@@ -472,7 +512,7 @@ class _GameScreenState extends State<GameScreen> {
                       const SizedBox(height: 12),
                       Center(
                         child: Text(
-                          'LinkedIn Zip Game v1.1.0',
+                          'Zipper v1.0.0',
                           style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
                         ),
                       ),
@@ -488,27 +528,289 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
+  Widget _buildHelpRow({required IconData icon, required String title, required String description}) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0A66C2).withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, color: const Color(0xFF0A66C2), size: 24),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.openSans(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                description,
+                style: const TextStyle(fontSize: 13, color: Colors.black54, height: 1.4),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   void _showHelp() {
     AudioManager.playClick();
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Rules'),
-        content: const Text(
-          '1. Connect the checkpoints in numerical order (1 -> 2 -> 3 ...).\n\n'
-          '2. The completed path must visit EVERY cell in the grid exactly once.\n\n'
-          '3. You cannot cross your own path or go through thick black wall lines.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              AudioManager.playClick();
-              Navigator.pop(context);
-            },
-            child: const Text('Got it'),
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
-        ],
-      ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'How To Play',
+                    style: GoogleFonts.openSans(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.black54),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _buildHelpRow(
+                icon: Icons.onetwothree_rounded,
+                title: 'Connect in Order',
+                description: 'Drag lines to connect the checkpoints in numerical order (1 -> 2 -> 3 ...).',
+              ),
+              const Divider(height: 24),
+              _buildHelpRow(
+                icon: Icons.grid_on_rounded,
+                title: 'Fill the Grid',
+                description: 'The completed path must visit EVERY single cell in the grid exactly once.',
+              ),
+              const Divider(height: 24),
+              _buildHelpRow(
+                icon: Icons.do_not_disturb_on_total_silence_rounded,
+                title: 'Do Not Cross',
+                description: 'You cannot cross your own path or cross through the thick black wall lines.',
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () {
+                  AudioManager.playClick();
+                  Navigator.pop(context);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0A66C2),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: Text(
+                  'Got it, let\'s play!',
+                  style: GoogleFonts.openSans(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 15),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showPrivacyPolicy() {
+    AudioManager.playClick();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.85,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              child: Column(
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Privacy Policy',
+                        style: GoogleFonts.openSans(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.black54),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _showSettings(); // return to settings
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: ListView(
+                      controller: scrollController,
+                      children: [
+                        Text(
+                          'Last Updated: July 10, 2026\n\n'
+                          'Welcome to Zipper! We are committed to protecting your privacy. This Privacy Policy explains how we collect, use, and share information when you play our game.\n\n'
+                          '1. Information We Collect\n'
+                          'We do not collect any personal identifier information. If you play in multiplayer mode, we request a temporary Guest Nickname which is stored solely to display on the multiplayer scoreboard and active match list. This information is deleted automatically after the room expires.\n\n'
+                          '2. Supabase Integration\n'
+                          'Multiplayer services are backed by Supabase. Room and message data are stored temporarily and cleared automatically using database triggers and cleanup procedures.\n\n'
+                          '3. Third-Party Services\n'
+                          'Our game integrates standard device capabilities for Haptics and Audio. We do not use trackers, analytics tools, or advertising networks that collect your device usage data.\n\n'
+                          '4. Changes to This Policy\n'
+                          'We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new policy inside the app settings panel.\n\n'
+                          'If you have any questions, feel free to contact us at support@zipper.com.',
+                          style: GoogleFonts.openSans(fontSize: 14, color: Colors.black87, height: 1.5),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showTermsOfService() {
+    AudioManager.playClick();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.85,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              child: Column(
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Terms of Service',
+                        style: GoogleFonts.openSans(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.black54),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _showSettings(); // return to settings
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: ListView(
+                      controller: scrollController,
+                      children: [
+                        Text(
+                          'Last Updated: July 10, 2026\n\n'
+                          'By accessing or playing Zipper, you agree to comply with and be bound by these Terms of Service.\n\n'
+                          '1. User License\n'
+                          'We grant you a personal, non-transferable, non-exclusive license to use the Zipper application on your devices for personal entertainment purposes only.\n\n'
+                          '2. Acceptable Conduct\n'
+                          'You agree not to modify, reverse engineer, or exploit the game client, database, or connection protocols. You agree not to spam or send abusive/offensive texts in the Multiplayer Match Chat room.\n\n'
+                          '3. Account Responsibility\n'
+                          'Multiplayer accounts are created as Guest access tokens. You are responsible for maintaining your local config. Clearing app data or resetting progress is permanent and cannot be restored by host services.\n\n'
+                          '4. Disclaimer of Warranties\n'
+                          'Zipper is provided "as is" without warranty of any kind. We do not guarantee uninterrupted matchmaking operations or persistent leaderboard scores.\n\n'
+                          'If you violate these terms, we reserve the right to suspend or block your access to multiplayer lobbies.',
+                          style: GoogleFonts.openSans(fontSize: 14, color: Colors.black87, height: 1.5),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -558,48 +860,48 @@ class _GameScreenState extends State<GameScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Column(
-          children: [
-            // Header panel
-            LinkedInHeader(
-              elapsed: _elapsed,
-              streak: _streak,
-              levelId: _currentLevel.id,
-              themeColor: _currentLevel.themeColor,
-              onReset: _resetGame,
-              onShowLevels: _openLevelsPage,
-              onHelp: _showHelp,
-              onSettings: _showSettings,
-            ),
-            const Divider(height: 1, color: Color(0xFFE0E0E0)),
-            
-            // Grid gameplay canvas
-            Expanded(
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10.0),
+          child: Column(
+            children: [
+              // Header panel
+              LinkedInHeader(
+                elapsed: _elapsed,
+                streak: _streak,
+                levelId: _currentLevel.id,
+                themeColor: _currentLevel.themeColor,
+                onReset: _resetGame,
+                onShowLevels: _openLevelsPage,
+                onHelp: _showHelp,
+                onSettings: _showSettings,
+              ),
+              const Divider(height: 1, color: Color(0xFFE0E0E0)),
+              
+              // Grid gameplay canvas
+              Expanded(
+                child: Center(
                   child: GameWidget(
                     game: zipGame,
                   ),
                 ),
               ),
-            ),
-            
-            // Bottom UI
-            ListenableBuilder(
-              listenable: gameState,
-              builder: (context, _) {
-                return ControlPanel(
-                  onUndo: () => gameState.undo(),
-                  onHint: _handleHintTapped,
-                  isUndoEnabled: gameState.undoHistory.isNotEmpty,
-                  hintCooldownRemaining: _hintCooldownRemaining,
-                );
-              },
-            ),
-            const HowToPlayCard(),
-            const SizedBox(height: 12),
-          ],
+              
+              // Bottom UI
+              ListenableBuilder(
+                listenable: gameState,
+                builder: (context, _) {
+                  return ControlPanel(
+                    onUndo: () => gameState.undo(),
+                    onHint: _handleHintTapped,
+                    isUndoEnabled: gameState.undoHistory.isNotEmpty,
+                    hintCooldownRemaining: _hintCooldownRemaining,
+                  );
+                },
+              ),
+              const HowToPlayCard(),
+              const SizedBox(height: 12),
+            ],
+          ),
         ),
       ),
     );

@@ -1,7 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:device_preview/device_preview.dart';
 import 'screens/game_screen.dart';
 import 'models/level_data.dart';
 import 'services/supabase_service.dart';
@@ -9,22 +7,15 @@ import 'services/supabase_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SupabaseService.initialize();
-  runApp(
-    DevicePreview(
-      enabled: !kReleaseMode,
-      builder: (context) => const LinkedInZipApp(),
-    ),
-  );
+  runApp(const ZipperApp());
 }
 
-class LinkedInZipApp extends StatelessWidget {
-  const LinkedInZipApp({super.key});
+class ZipperApp extends StatelessWidget {
+  const ZipperApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      locale: DevicePreview.locale(context),
-      builder: DevicePreview.appBuilder,
       title: 'Zipper',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -33,6 +24,21 @@ class LinkedInZipApp extends StatelessWidget {
           primary: const Color(0xFF0A66C2),
         ),
         useMaterial3: true,
+        fontFamily: GoogleFonts.openSans().fontFamily,
+        textTheme: GoogleFonts.openSansTextTheme(),
+        snackBarTheme: SnackBarThemeData(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: const Color(0xFF323232),
+          contentTextStyle: GoogleFonts.openSans(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
+          elevation: 6,
+        ),
       ),
       home: GameScreen(
         level: LevelData.levels.first,
@@ -40,3 +46,4 @@ class LinkedInZipApp extends StatelessWidget {
     );
   }
 }
+

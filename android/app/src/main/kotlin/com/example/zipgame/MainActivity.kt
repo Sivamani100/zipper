@@ -1,5 +1,1 @@
-package com.example.zipgame
-
-import io.flutter.embedding.android.FlutterActivity
-
-class MainActivity : FlutterActivity()
+// Deprecated MainActivity. Moved to com.sivamani.zipper.

@@ -70,7 +70,7 @@ class _MultiplayerLobbyScreenState extends State<MultiplayerLobbyScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               title: Text(
                 'Create Multiplayer Room',
-                style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+                style: GoogleFonts.openSans(fontWeight: FontWeight.bold),
               ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -78,7 +78,7 @@ class _MultiplayerLobbyScreenState extends State<MultiplayerLobbyScreen> {
                 children: [
                   Text(
                     'ROOM NAME',
-                    style: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
+                    style: GoogleFonts.openSans(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
                   ),
                   const SizedBox(height: 6),
                   TextField(
@@ -95,11 +95,11 @@ class _MultiplayerLobbyScreenState extends State<MultiplayerLobbyScreen> {
                     children: [
                       Text(
                         'GRID SIZE',
-                        style: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
+                        style: GoogleFonts.openSans(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
                       ),
                       Text(
                         '${gridSize.toInt()} x ${gridSize.toInt()}',
-                        style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF0A66C2)),
+                        style: GoogleFonts.openSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF0A66C2)),
                       ),
                     ],
                   ),
@@ -213,7 +213,7 @@ class _MultiplayerLobbyScreenState extends State<MultiplayerLobbyScreen> {
         elevation: 0.5,
         title: Text(
           'Battle Arena',
-          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.black87),
+          style: GoogleFonts.openSans(fontWeight: FontWeight.bold, color: Colors.black87),
         ),
         actions: [
           IconButton(
@@ -230,231 +230,258 @@ class _MultiplayerLobbyScreenState extends State<MultiplayerLobbyScreen> {
       ),
       body: _isLoading && _rooms.isEmpty
           ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _refreshRooms,
-              child: Column(
-                children: [
-                  // User stats header card
-                  Container(
-                    width: double.infinity,
-                    color: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          backgroundColor: themeColor.withValues(alpha: 0.1),
-                          radius: 20,
-                          child: Icon(Icons.sports_esports_rounded, color: themeColor),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                SupabaseService.currentUser?.userMetadata?['display_name'] ?? 'Anonymous Player',
-                                style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15),
-                              ),
-                              Text(
-                                SupabaseService.currentUser?.email ?? 'Logged in as Guest',
-                                style: const TextStyle(fontSize: 12, color: Colors.black54),
-                              ),
-                            ],
-                          ),
-                        ),
-                        ElevatedButton.icon(
-                          onPressed: _showCreateRoomDialog,
-                          icon: const Icon(Icons.add_rounded, color: Colors.white, size: 18),
-                          label: Text(
-                            'New Room',
-                            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: themeColor,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            elevation: 0,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Divider(height: 1, color: Colors.black12),
-
-                  // Join Private Room Panel
-                  Container(
-                    color: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _privateRoomIdController,
-                            style: const TextStyle(fontSize: 13),
-                            decoration: InputDecoration(
-                              hintText: 'Paste Room ID to join...',
-                              prefixIcon: const Icon(Icons.vpn_key_outlined, size: 18),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(color: Colors.grey.shade300),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(color: Colors.grey.shade200),
-                              ),
-                              fillColor: const Color(0xFFF9F9FB),
-                              filled: true,
+          : Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10.0),
+              child: RefreshIndicator(
+                onRefresh: _refreshRooms,
+                child: Column(
+                  children: [
+                    // User stats header card
+                    Container(
+                      width: double.infinity,
+                      color: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 24,
+                            backgroundColor: themeColor.withValues(alpha: 0.1),
+                            child: Text(
+                              (SupabaseService.currentUser?.userMetadata?['display_name'] as String? ?? 'A')
+                                  .substring(0, 1)
+                                  .toUpperCase(),
+                              style: TextStyle(fontWeight: FontWeight.bold, color: themeColor, fontSize: 18),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        ElevatedButton(
-                          onPressed: () {
-                            final rid = _privateRoomIdController.text.trim();
-                            if (rid.isNotEmpty) {
-                              _privateRoomIdController.clear();
-                              _joinRoom(rid);
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.grey.shade800,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          ),
-                          child: Text(
-                            'Join ID',
-                            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Divider(height: 1, color: Colors.black12),
-
-                  if (_errorMessage != null)
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
-                    ),
-
-                  Expanded(
-                    child: _rooms.isEmpty
-                        ? ListView(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            children: [
-                              SizedBox(height: MediaQuery.of(context).size.height * 0.25),
-                              const Center(
-                                child: Icon(Icons.meeting_room_outlined, size: 64, color: Colors.black26),
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                'No active match rooms found.',
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.outfit(color: Colors.black45, fontSize: 16),
-                              ),
-                              Text(
-                                'Tap "New Room" above to create one!',
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.outfit(color: Colors.black38, fontSize: 13),
-                              ),
-                            ],
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.all(16.0),
-                            itemCount: _rooms.length,
-                            itemBuilder: (context, index) {
-                              final room = _rooms[index];
-                              final creator = room['creator'] as Map<String, dynamic>?;
-                              final opponent = room['opponent'] as Map<String, dynamic>?;
-                              final creatorName = creator?['display_name'] ?? 'Creator';
-                              final isCreator = room['creator_id'] == SupabaseService.currentUser?.id;
-                              final isOpponent = room['opponent_id'] == SupabaseService.currentUser?.id;
-                              final status = room['status'] as String;
-
-                              return Card(
-                                elevation: 0,
-                                color: Colors.white,
-                                margin: const EdgeInsets.only(bottom: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                  side: BorderSide(color: Colors.grey.shade200),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  SupabaseService.currentUser?.userMetadata?['display_name'] as String? ?? 'Anonymous Player',
+                                  style: GoogleFonts.openSans(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87),
                                 ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              room['name'] as String? ?? 'Match Room',
-                                              style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16),
-                                            ),
-                                            const SizedBox(height: 6),
-                                            Row(
-                                              children: [
-                                                Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                                  decoration: BoxDecoration(
-                                                    color: themeColor.withValues(alpha: 0.1),
-                                                    borderRadius: BorderRadius.circular(6),
-                                                  ),
-                                                  child: Text(
-                                                    '${room['grid_size']}x${room['grid_size']}',
-                                                    style: TextStyle(
-                                                      color: themeColor,
-                                                      fontSize: 12,
-                                                      fontWeight: FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 10),
-                                                Text(
-                                                  'By: $creatorName',
-                                                  style: const TextStyle(fontSize: 12, color: Colors.black54),
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      if (isCreator || isOpponent)
-                                        ElevatedButton(
-                                          onPressed: () => _joinRoom(room['id'] as String),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.green,
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                          ),
-                                          child: const Text('Re-enter', style: TextStyle(color: Colors.white)),
-                                        )
-                                      else if (opponent != null)
-                                        ElevatedButton(
-                                          onPressed: null,
-                                          style: ElevatedButton.styleFrom(
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                          ),
-                                          child: const Text('In Progress'),
-                                        )
-                                      else
-                                        ElevatedButton(
-                                          onPressed: () => _joinRoom(room['id'] as String),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: themeColor,
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                          ),
-                                          child: const Text('Join Room', style: TextStyle(color: Colors.white)),
-                                        ),
-                                    ],
+                                const SizedBox(height: 2),
+                                Text(
+                                  SupabaseService.currentUser?.email ?? 'Logged in as Guest',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 1, color: Color(0xFFE9ECEF)),
+                    const SizedBox(height: 12),
+                    
+                    // Join private room panel
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Container(
+                        padding: const EdgeInsets.all(16.0),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              'JOIN PRIVATE ROOM',
+                              style: GoogleFonts.openSans(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: _privateRoomIdController,
+                                    style: const TextStyle(fontSize: 13),
+                                    decoration: InputDecoration(
+                                      hintText: 'Paste Room ID to join...',
+                                      filled: true,
+                                      fillColor: const Color(0xFFF8F9FA),
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                                    ),
                                   ),
                                 ),
-                              );
-                            },
+                                const SizedBox(width: 10),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    final text = _privateRoomIdController.text.trim();
+                                    if (text.isNotEmpty) {
+                                      _privateRoomIdController.clear();
+                                      _joinRoom(text);
+                                    }
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: themeColor,
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                  child: const Text('Join ID', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // Quick Action button to create a room
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: ElevatedButton.icon(
+                        onPressed: _showCreateRoomDialog,
+                        icon: const Icon(Icons.add_box_rounded, color: Colors.white),
+                        label: const Text('Create New Match Room', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: themeColor,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    
+                    // Active Rooms Header
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                      child: Row(
+                        children: [
+                          Text(
+                            'Active Match Lobby',
+                            style: GoogleFonts.openSans(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87),
                           ),
-                  ),
-                ],
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(color: themeColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+                            child: Text(
+                              '${_rooms.length} Active',
+                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: themeColor),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    
+                    // Match Rooms List
+                    Expanded(
+                      child: _rooms.isEmpty
+                          ? ListView(
+                              children: [
+                                SizedBox(height: 40),
+                                Center(
+                                  child: Text(
+                                    'No active match rooms found.\nCreate one above to challenge a friend!',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(color: Colors.grey.shade500, fontSize: 13, height: 1.4),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : ListView.builder(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                              itemCount: _rooms.length,
+                              itemBuilder: (context, index) {
+                                final room = _rooms[index];
+                                final creator = room['creator'] as Map<String, dynamic>?;
+                                final opponent = room['opponent'] as Map<String, dynamic>?;
+                                final isMyRoom = room['creator_id'] == SupabaseService.currentUser?.id ||
+                                    room['opponent_id'] == SupabaseService.currentUser?.id;
+
+                                return Card(
+                                  color: Colors.white,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    side: BorderSide(color: Colors.grey.shade200),
+                                  ),
+                                  margin: const EdgeInsets.only(bottom: 10),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(14.0),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                room['name'] as String? ?? 'Match Arena',
+                                                style: GoogleFonts.openSans(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Row(
+                                                children: [
+                                                  Text(
+                                                    'Host: ${creator?['username'] ?? 'Player'}',
+                                                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  Container(
+                                                    width: 4,
+                                                    height: 4,
+                                                    decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.grey.shade400),
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  Text(
+                                                    'Grid: ${room['grid_size']}x${room['grid_size']}',
+                                                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        if (isMyRoom)
+                                          ElevatedButton(
+                                            onPressed: () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) => MultiplayerRoomScreen(roomId: room['id'] as String),
+                                                ),
+                                              ).then((_) => _refreshRooms());
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.green,
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                            ),
+                                            child: const Text('Re-enter', style: TextStyle(color: Colors.white)),
+                                          )
+                                        else if (opponent != null)
+                                          ElevatedButton(
+                                            onPressed: null,
+                                            style: ElevatedButton.styleFrom(
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                            ),
+                                            child: const Text('In Progress'),
+                                          )
+                                        else
+                                          ElevatedButton(
+                                            onPressed: () => _joinRoom(room['id'] as String),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: themeColor,
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                            ),
+                                            child: const Text('Join Room', style: TextStyle(color: Colors.white)),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
               ),
             ),
     );

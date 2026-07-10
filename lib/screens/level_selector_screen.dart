@@ -218,7 +218,7 @@ class _LevelSelectorScreenState extends State<LevelSelectorScreen> {
             const SizedBox(width: 8),
             Text(
               'Zipper Levels',
-              style: GoogleFonts.outfit(
+              style: GoogleFonts.openSans(
                 color: Colors.black87,
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -310,7 +310,7 @@ class _LevelSelectorScreenState extends State<LevelSelectorScreen> {
                         const SizedBox(width: 6),
                         Text(
                           'Map Path',
-                          style: GoogleFonts.outfit(
+                          style: GoogleFonts.openSans(
                             color: _isMapView ? const Color(0xFF0A66C2) : Colors.black54,
                             fontWeight: _isMapView ? FontWeight.bold : FontWeight.w600,
                             fontSize: 14,
@@ -342,7 +342,7 @@ class _LevelSelectorScreenState extends State<LevelSelectorScreen> {
                         const SizedBox(width: 6),
                         Text(
                           'Grid View',
-                          style: GoogleFonts.outfit(
+                          style: GoogleFonts.openSans(
                             color: !_isMapView ? const Color(0xFF0A66C2) : Colors.black54,
                             fontWeight: !_isMapView ? FontWeight.bold : FontWeight.w600,
                             fontSize: 14,
@@ -504,7 +504,7 @@ class _LevelSelectorScreenState extends State<LevelSelectorScreen> {
                 children: [
                   Text(
                     'CHAPTER ${chapter.chapterNumber}',
-                    style: GoogleFonts.outfit(
+                    style: GoogleFonts.openSans(
                       color: Colors.white70,
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
@@ -516,7 +516,7 @@ class _LevelSelectorScreenState extends State<LevelSelectorScreen> {
                     chapter.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.outfit(
+                    style: GoogleFonts.openSans(
                       color: Colors.white,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -619,7 +619,7 @@ class _LevelSelectorScreenState extends State<LevelSelectorScreen> {
                       children: [
                         Text(
                           'Chapter ${chapter.chapterNumber}: ${chapter.title}',
-                          style: GoogleFonts.outfit(
+                          style: GoogleFonts.openSans(
                             color: Colors.white,
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -796,7 +796,7 @@ class LevelNode extends StatelessWidget {
       contentColor = themeColor;
       content = Text(
         '$levelId',
-        style: GoogleFonts.outfit(
+        style: GoogleFonts.openSans(
           color: contentColor,
           fontSize: 20,
           fontWeight: FontWeight.w900,

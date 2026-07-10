@@ -237,20 +237,22 @@ class SupabaseService {
         'creator_solved_time': null,
         'opponent_solved_time': null,
         'winner_id': null,
+        'creator_calling': false,
+        'opponent_calling': false,
       }).eq('id', roomId);
     } catch (e) {
       debugPrint('[SupabaseService] Advance room level failed: $e');
     }
   }
 
-  static Future<void> updateCallStatus(String roomId, bool isCreator, bool calling) async {
+  static Future<void> updateReadyForNext(String roomId, bool isCreator, bool ready) async {
     try {
       final updateData = isCreator 
-          ? {'creator_calling': calling} 
-          : {'opponent_calling': calling};
+          ? {'creator_calling': ready} 
+          : {'opponent_calling': ready};
       await client.from('rooms').update(updateData).eq('id', roomId);
     } catch (e) {
-      debugPrint('[SupabaseService] Update call status failed: $e');
+      debugPrint('[SupabaseService] Update ready status failed: $e');
     }
   }
 
@@ -308,84 +310,5 @@ class SupabaseService {
         .stream(primaryKey: ['id'])
         .eq('room_id', roomId)
         .order('created_at', ascending: true);
-  }
-
-  // ==========================================
-  // WebRTC Call Signaling Broker
-  // ==========================================
-
-  static Future<void> sendSignaling({
-    required String roomId,
-    required String receiverId,
-    required String type,
-    required Map<String, dynamic> payload,
-  }) async {
-    final senderId = currentUser?.id;
-    if (senderId == null) return;
-
-    try {
-      await client.from('webrtc_signaling').insert({
-        'room_id': roomId,
-        'sender_id': senderId,
-        'receiver_id': receiverId,
-        'type': type,
-        'payload': payload,
-      });
-    } catch (e) {
-      debugPrint('[SupabaseService] WebRTC send signaling error: $e');
-    }
-  }
-
-  /// Listen to inbound signaling packets
-  static RealtimeChannel subscribeSignaling({
-    required String roomId,
-    required String userId,
-    required Function(Map<String, dynamic> data) onSignal,
-  }) {
-    final channel = client.channel('signaling_channel:$roomId');
-    
-    channel.onPostgresChanges(
-      event: PostgresChangeEvent.insert,
-      schema: 'public',
-      table: 'webrtc_signaling',
-      filter: PostgresChangeFilter(
-        type: PostgresChangeFilterType.eq,
-        column: 'receiver_id',
-        value: userId,
-      ),
-      callback: (payload) {
-        final newRecord = payload.newRecord;
-        if (newRecord.isNotEmpty) {
-          onSignal(newRecord);
-        }
-      },
-    ).subscribe();
-
-    return channel;
-  }
-
-  /// Fetch all pending signaling records for a user in a room
-  static Future<List<Map<String, dynamic>>> fetchPendingSignaling(String roomId, String userId) async {
-    try {
-      final response = await client
-          .from('webrtc_signaling')
-          .select()
-          .eq('room_id', roomId)
-          .eq('receiver_id', userId)
-          .order('created_at', ascending: true);
-      return List<Map<String, dynamic>>.from(response);
-    } catch (e) {
-      debugPrint('[SupabaseService] Fetch pending signaling error: $e');
-      return [];
-    }
-  }
-
-  /// Clear all signaling records for a room
-  static Future<void> clearSignaling(String roomId) async {
-    try {
-      await client.from('webrtc_signaling').delete().eq('room_id', roomId);
-    } catch (e) {
-      debugPrint('[SupabaseService] Clear signaling error: $e');
-    }
   }
 }

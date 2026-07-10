@@ -25,7 +25,7 @@ class ZipGame extends FlameGame with DragCallbacks {
     super.onLoad();
 
     // Center the board on screen
-    final sizeOfBoard = min(size.x, size.y) * 0.9;
+    final sizeOfBoard = min(size.x - 40, size.y - 40);
     boardComponent = ZipBoardComponent(
       gameState: gameState,
       boardSize: sizeOfBoard,
@@ -41,7 +41,7 @@ class ZipGame extends FlameGame with DragCallbacks {
   void onGameResize(Vector2 size) {
     super.onGameResize(size);
     if (isLoaded) {
-      final sizeOfBoard = min(size.x, size.y) * 0.9;
+      final sizeOfBoard = min(size.x - 40, size.y - 40);
       boardComponent.size = Vector2.all(sizeOfBoard);
       boardComponent.position = (size - Vector2.all(sizeOfBoard)) / 2;
       boardComponent.resizeBoard(sizeOfBoard);
@@ -159,6 +159,24 @@ class ZipBoardComponent extends PositionComponent with DragCallbacks, TapCallbac
 
     final level = gameState.level;
     final int size = level.gridSize;
+
+    // Save canvas state for clipping
+    canvas.save();
+
+    // Create rounded rect for the board (12px corners)
+    final boardRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, 0, boardSize, boardSize),
+      const Radius.circular(12),
+    );
+
+    // Draw solid white background for the board
+    final bgPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+    canvas.drawRRect(boardRect, bgPaint);
+
+    // Clip all cell renders, paths, gridlines, walls, etc. inside the rounded corners
+    canvas.clipRRect(boardRect);
 
     // 1. Draw Cell Backgrounds (translucent highlight for visited cells)
     final pathBgPaint = Paint()
@@ -280,6 +298,16 @@ class ZipBoardComponent extends PositionComponent with DragCallbacks, TapCallbac
         center - Offset(textPainter.width / 2, textPainter.height / 2),
       );
     });
+
+    // Restore canvas from clipping to draw outer border
+    canvas.restore();
+
+    // Draw a clean, rounded outer border
+    final borderPaint = Paint()
+      ..color = gridLineColor.withValues(alpha: 0.8)
+      ..strokeWidth = gridBorderWidth * 1.5
+      ..style = PaintingStyle.stroke;
+    canvas.drawRRect(boardRect, borderPaint);
   }
 
   Offset _getCellCenter(GridPos pos) {

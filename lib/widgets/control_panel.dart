@@ -35,7 +35,7 @@ class ControlPanel extends StatelessWidget {
                   color: isUndoEnabled ? Colors.black54 : Colors.transparent,
                   width: 1.2,
                 ),
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                padding: const EdgeInsets.symmetric(vertical: 10),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),
@@ -44,7 +44,7 @@ class ControlPanel extends StatelessWidget {
                 'Undo',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 16,
+                  fontSize: 14,
                 ),
               ),
             ),
@@ -60,7 +60,7 @@ class ControlPanel extends StatelessWidget {
                   color: isOnCooldown ? Colors.transparent : Colors.black54,
                   width: 1.2,
                 ),
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                padding: const EdgeInsets.symmetric(vertical: 10),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),
@@ -69,7 +69,7 @@ class ControlPanel extends StatelessWidget {
                 isOnCooldown ? 'Hint (${hintCooldownRemaining}s)' : 'Hint',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 16,
+                  fontSize: 14,
                 ),
               ),
             ),
@@ -88,7 +88,7 @@ class HowToPlayCard extends StatefulWidget {
 }
 
 class _HowToPlayCardState extends State<HowToPlayCard> {
-  bool _expanded = true;
+  bool _expanded = false;
 
   @override
   Widget build(BuildContext context) {
