@@ -2,13 +2,14 @@ import 'dart:html' as html;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AudioManagerImpl {
-  static void _playWebSound(String url) async {
+  static void _playWebSound(String assetPath) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final soundEnabled = prefs.getBool('zip_sound_effects') ?? true;
       if (!soundEnabled) return;
 
-      final audio = html.AudioElement()..src = url;
+      // In Flutter Web, assets are served at 'assets/assets/sounds/...'
+      final audio = html.AudioElement()..src = 'assets/assets/' + assetPath;
       audio.play();
     } catch (e) {
       // Browser autoplay policy might block audio before first interaction, fail silently
@@ -16,10 +17,10 @@ class AudioManagerImpl {
   }
 
   static void playClick() {
-    _playWebSound('https://assets.mixkit.co/sfx/preview/mixkit-button-press-and-click-1262.mp3');
+    // Click sound disabled as per user request
   }
 
   static void playSuccess() {
-    _playWebSound('https://assets.mixkit.co/sfx/preview/mixkit-game-level-completed-2059.mp3');
+    _playWebSound('sounds/success.mp3');
   }
 }

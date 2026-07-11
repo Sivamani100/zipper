@@ -190,23 +190,30 @@ class _GameScreenState extends State<GameScreen> {
     await prefs.setStringList('completed_zips', completed);
   }
 
-  void _handleLevelComplete() {
+  void _handleLevelComplete() async {
     AudioManager.playSuccess();
     _stopTimer();
     
     // Increment and save streak
     _streak += 1;
     final nextLevelId = _currentLevel.id + 1;
-    SharedPreferences.getInstance().then((prefs) {
-      prefs.setInt('zip_streak', _streak);
-      if (nextLevelId <= LevelData.levels.length) {
-        prefs.setInt('last_played_level_id', nextLevelId);
-      } else {
-        prefs.setInt('last_played_level_id', _currentLevel.id);
-      }
-    });
+    
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('zip_streak', _streak);
+    if (nextLevelId <= LevelData.levels.length) {
+      await prefs.setInt('last_played_level_id', nextLevelId);
+    } else {
+      await prefs.setInt('last_played_level_id', _currentLevel.id);
+    }
 
-    _saveProgress();
+    // Increment completed ad counter and check if it is time to show a rewarded ad (every 2 levels)
+    final adCounter = (prefs.getInt('zip_completed_ad_counter') ?? 0) + 1;
+    await prefs.setInt('zip_completed_ad_counter', adCounter);
+    final bool shouldShowAd = adCounter % 2 == 0;
+
+    await _saveProgress();
+    
+    if (!mounted) return;
     
     // Smooth transition to Victory Screen
     Future.delayed(const Duration(milliseconds: 600), () {
@@ -219,6 +226,7 @@ class _GameScreenState extends State<GameScreen> {
             level: _currentLevel,
             completionTime: _elapsedNotifier.value,
             streak: _streak,
+            shouldShowAd: shouldShowAd,
             onRestart: () {
               Navigator.pop(context); // Close victory screen
               setState(() {
@@ -516,7 +524,7 @@ class _GameScreenState extends State<GameScreen> {
                       const SizedBox(height: 12),
                       Center(
                         child: Text(
-                          'Zipper v1.0.0',
+                          'Zipper v1.0.1',
                           style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
                         ),
                       ),

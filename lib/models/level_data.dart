@@ -121,6 +121,8 @@ class LevelData {
       }
     }
 
+    solutions[id] = path;
+
     return Level(
       id: id,
       gridSize: gridSize,

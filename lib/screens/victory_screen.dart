@@ -8,6 +8,7 @@ class VictoryScreen extends StatefulWidget {
   final Level level;
   final Duration completionTime;
   final int streak;
+  final bool shouldShowAd;
   final VoidCallback onRestart;
   final VoidCallback? onNextLevel;
   final VoidCallback onBackToMenu;
@@ -17,6 +18,7 @@ class VictoryScreen extends StatefulWidget {
     required this.level,
     required this.completionTime,
     required this.streak,
+    required this.shouldShowAd,
     required this.onRestart,
     required this.onNextLevel,
     required this.onBackToMenu,
@@ -169,8 +171,13 @@ class _VictoryScreenState extends State<VictoryScreen> with TickerProviderStateM
 
   String _getCaptionText() => _caption;
 
-  /// Shows rewarded ad then calls [action]. If ad not ready, calls [action] directly.
+  /// Shows rewarded ad then calls [action]. If ad not ready or shouldShowAd is false, calls [action] directly.
   void _runWithRewardedAd(VoidCallback action) {
+    if (!widget.shouldShowAd) {
+      action();
+      return;
+    }
+
     if (_showingAd) return;
     setState(() => _showingAd = true);
 
