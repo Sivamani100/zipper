@@ -3,10 +3,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'screens/game_screen.dart';
 import 'models/level_data.dart';
 import 'services/supabase_service.dart';
+import 'services/ad_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SupabaseService.initialize();
+  await AdManager.initialize(); // Initialize AdMob SDK and pre-load rewarded ad
   runApp(const ZipperApp());
 }
 

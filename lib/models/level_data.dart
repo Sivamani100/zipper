@@ -24,33 +24,30 @@ class LevelData {
 
   static Level _generateLevel(int id) {
     // Scaling Grid Size and Checkpoint Counts
-    int gridSize = 4;
-    int checkpointsCount = 4;
-    String difficulty = 'Intro';
+    int gridSize = 6;
+    int checkpointsCount = 6;
+    String difficulty = 'Hard';
 
-    if (id <= 10) {
-      gridSize = 4;
-      checkpointsCount = 4;
-      difficulty = 'Intro';
-    } else if (id <= 30) {
-      gridSize = 5;
-      checkpointsCount = 5 + (id % 2); // 5 or 6
-      difficulty = 'Easy';
-    } else if (id <= 80) {
+    if (id <= 80) {
       gridSize = 6;
-      checkpointsCount = 7 + (id % 3); // 7, 8, or 9
-      difficulty = 'Medium';
-    } else if (id <= 150) {
-      gridSize = 7;
-      checkpointsCount = 10 + (id % 3); // 10, 11, or 12
+      checkpointsCount = 6 + (id % 3); // 6, 7, or 8 checkpoints
       difficulty = 'Hard';
-    } else {
+    } else if (id <= 200) {
+      gridSize = 7;
+      checkpointsCount = 9 + (id % 3); // 9, 10, or 11 checkpoints
+      difficulty = 'Harder';
+    } else if (id <= 320) {
       gridSize = 8;
-      checkpointsCount = 13 + (id % 2); // 13 or 14 (Capped at 14!)
-      difficulty = 'Expert';
+      checkpointsCount = 12 + (id % 3); // 12, 13, or 14 checkpoints
+      difficulty = 'Hardest';
+    } else {
+      gridSize = 9;
+      checkpointsCount = 15 + (id % 4); // 15, 16, 17, or 18 checkpoints
+      difficulty = 'Grandmaster';
     }
 
-    final rand = Random(id * 7890); // Seed for deterministic generation per level
+    // Primes used to ensure completely distinct layouts for all 400 levels
+    final rand = Random(id * 97 + 104729);
 
     // Search for a valid Hamiltonian Path
     List<GridPos>? path;
@@ -99,7 +96,13 @@ class LevelData {
 
     // Generate dynamic walls that don't block the solution path
     final List<Wall> walls = [];
-    final wallChance = gridSize >= 6 ? 0.14 : 0.06;
+    
+    // Hard levels have higher wall density to guide and constraint paths logically
+    double wallChance = 0.15;
+    if (gridSize == 7) wallChance = 0.18;
+    if (gridSize == 8) wallChance = 0.22;
+    if (gridSize == 9) wallChance = 0.25;
+
     for (int x = 0; x < gridSize; x++) {
       for (int y = 0; y < gridSize; y++) {
         final current = GridPos(x, y);
@@ -121,7 +124,7 @@ class LevelData {
     return Level(
       id: id,
       gridSize: gridSize,
-      themeColor: themeColors[(id - 1) % themeColors.length],
+      themeColor: themeColors[(id * 3 + 1) % themeColors.length],
       difficulty: difficulty,
       checkpoints: checkpoints,
       walls: walls,
@@ -142,7 +145,7 @@ class LevelData {
     final Set<GridPos> visited = {start};
 
     int steps = 0;
-    const maxSteps = 2000; // Cap search depth/backtracks to prevent page freeze on large grids
+    const maxSteps = 200000; // Increased limit to guarantee finding Hamiltonian paths on larger grids
 
     bool dfs(GridPos current) {
       steps++;
@@ -193,7 +196,7 @@ class LevelData {
     List<GridPos> path = [start];
     
     int steps = 0;
-    const maxSolveSteps = 5000; // Cap steps to prevent freeze on complex puzzles
+    const maxSolveSteps = 200000; // Increased solver limit to accommodate complex paths up to 9x9
 
     bool solve(GridPos current, int checkpointTarget) {
       steps++;
@@ -344,7 +347,7 @@ class LazyLevelList extends ListBase<Level> {
   final Map<int, Level> _cache = {};
 
   @override
-  int get length => 300;
+  int get length => 400;
 
   @override
   set length(int newLength) => throw UnsupportedError("Cannot modify length of levels list");

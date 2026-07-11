@@ -267,23 +267,23 @@ class ZipBoardComponent extends PositionComponent with DragCallbacks, TapCallbac
       }
     }
 
-    // 5. Draw Checkpoints (Numbered black circles)
+    // 5. Draw Checkpoints (Numbered custom-shaped circles/squircles/hexagons/diamonds)
     final checkpointPaint = Paint()
       ..color = Colors.black
       ..style = PaintingStyle.fill;
 
-    final double dotRadius = cellSize * 0.25;
+    final double dotRadius = cellSize * 0.26;
 
     level.checkpoints.forEach((number, pos) {
       final center = _getCellCenter(pos);
-      canvas.drawCircle(center, dotRadius, checkpointPaint);
+      _drawCheckpointShape(canvas, center, dotRadius, level.difficulty, checkpointPaint, level.themeColor);
 
       // Draw number text
       final textSpan = TextSpan(
         text: number.toString(),
         style: TextStyle(
           color: Colors.white,
-          fontSize: cellSize * 0.26,
+          fontSize: cellSize * 0.28,
           fontWeight: FontWeight.bold,
           fontFamily: 'Roboto',
         ),
@@ -315,5 +315,44 @@ class ZipBoardComponent extends PositionComponent with DragCallbacks, TapCallbac
       pos.x * cellSize + cellSize / 2,
       pos.y * cellSize + cellSize / 2,
     );
+  }
+
+  void _drawCheckpointShape(Canvas canvas, Offset center, double radius, String difficulty, Paint paint, Color themeColor) {
+    if (difficulty == 'Hard') {
+      // Draw clean solid round checkpoint
+      canvas.drawCircle(center, radius, paint);
+    } else if (difficulty == 'Harder') {
+      // Draw a clean solid rounded squircle
+      final rrect = RRect.fromRectAndRadius(
+        Rect.fromCircle(center: center, radius: radius),
+        Radius.circular(radius * 0.4),
+      );
+      canvas.drawRRect(rrect, paint);
+    } else if (difficulty == 'Hardest') {
+      // Draw a clean solid hexagon
+      final path = Path();
+      for (int i = 0; i < 6; i++) {
+        double angle = i * pi / 3;
+        double x = center.dx + radius * cos(angle);
+        double y = center.dy + radius * sin(angle);
+        if (i == 0) {
+          path.moveTo(x, y);
+        } else {
+          path.lineTo(x, y);
+        }
+      }
+      path.close();
+      canvas.drawPath(path, paint);
+    } else {
+      // Grandmaster: Draw a clean solid diamond shape
+      final path = Path();
+      path.moveTo(center.dx, center.dy - radius * 1.15); // Top
+      path.lineTo(center.dx + radius * 1.15, center.dy); // Right
+      path.lineTo(center.dx, center.dy + radius * 1.15); // Bottom
+      path.lineTo(center.dx - radius * 1.15, center.dy); // Left
+      path.close();
+      
+      canvas.drawPath(path, paint);
+    }
   }
 }

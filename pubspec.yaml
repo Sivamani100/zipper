@@ -42,6 +42,7 @@ dependencies:
   audioplayers: ^6.8.1
   lottie: ^3.5.1
   url_launcher: ^6.3.2
+  google_mobile_ads: ^5.1.0
 
 dev_dependencies:
   flutter_test:

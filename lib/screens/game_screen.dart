@@ -17,6 +17,7 @@ import 'supabase_config_screen.dart';
 import 'auth_screen.dart';
 import 'multiplayer_lobby_screen.dart';
 import 'developer_profile_screen.dart';
+import '../services/ad_manager.dart';
 
 
 class GameScreen extends StatefulWidget {
@@ -37,9 +38,9 @@ class _GameScreenState extends State<GameScreen> {
   late GameState gameState;
   late ZipGame zipGame;
   
-  // Timer state
+  // Timer state — using ValueNotifier so only the timer Text rebuilds each second
   Timer? _timer;
-  Duration _elapsed = Duration.zero;
+  final ValueNotifier<Duration> _elapsedNotifier = ValueNotifier(Duration.zero);
   bool _isTimerRunning = false;
 
   // Hint cooldown state
@@ -108,16 +109,13 @@ class _GameScreenState extends State<GameScreen> {
         _currentLevel = selectedLevel;
         _initGame();
       });
+      SharedPreferences.getInstance().then((prefs) {
+        prefs.setInt('last_played_level_id', selectedLevel.id);
+      });
     }
   }
 
   void _initGame() {
-    debugPrint('[GameScreen] Initializing game for Level ${_currentLevel.id} (Difficulty: ${_currentLevel.difficulty}, Grid: ${_currentLevel.gridSize}x${_currentLevel.gridSize})');
-    
-    SharedPreferences.getInstance().then((prefs) {
-      prefs.setInt('last_played_level_id', _currentLevel.id);
-    });
-
     final solution = LevelData.getSolutionForLevel(_currentLevel);
     gameState = GameState(level: _currentLevel, solutionPath: solution);
     
@@ -126,7 +124,7 @@ class _GameScreenState extends State<GameScreen> {
       onLevelComplete: _handleLevelComplete,
     );
 
-    _elapsed = Duration.zero;
+    _elapsedNotifier.value = Duration.zero;
     _startTimer();
   }
 
@@ -134,10 +132,8 @@ class _GameScreenState extends State<GameScreen> {
     _timer?.cancel();
     _isTimerRunning = true;
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted && _isTimerRunning) {
-        setState(() {
-          _elapsed += const Duration(seconds: 1);
-        });
+      if (_isTimerRunning) {
+        _elapsedNotifier.value += const Duration(seconds: 1);
       }
     });
   }
@@ -151,6 +147,7 @@ class _GameScreenState extends State<GameScreen> {
   void dispose() {
     _timer?.cancel();
     _cooldownTimer?.cancel();
+    _elapsedNotifier.dispose();
     gameState.dispose();
     super.dispose();
   }
@@ -161,7 +158,7 @@ class _GameScreenState extends State<GameScreen> {
     
     final levelPrefix = "${_currentLevel.id}:";
     int existingIndex = -1;
-    Duration bestDuration = _elapsed;
+    Duration bestDuration = _elapsedNotifier.value;
     
     for (int i = 0; i < completed.length; i++) {
       if (completed[i].startsWith(levelPrefix)) {
@@ -195,13 +192,18 @@ class _GameScreenState extends State<GameScreen> {
 
   void _handleLevelComplete() {
     AudioManager.playSuccess();
-    debugPrint('[GameScreen] Level ${_currentLevel.id} completed in ${_elapsed.inSeconds} seconds!');
     _stopTimer();
     
     // Increment and save streak
     _streak += 1;
+    final nextLevelId = _currentLevel.id + 1;
     SharedPreferences.getInstance().then((prefs) {
       prefs.setInt('zip_streak', _streak);
+      if (nextLevelId <= LevelData.levels.length) {
+        prefs.setInt('last_played_level_id', nextLevelId);
+      } else {
+        prefs.setInt('last_played_level_id', _currentLevel.id);
+      }
     });
 
     _saveProgress();
@@ -215,7 +217,7 @@ class _GameScreenState extends State<GameScreen> {
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) => VictoryScreen(
             level: _currentLevel,
-            completionTime: _elapsed,
+            completionTime: _elapsedNotifier.value,
             streak: _streak,
             onRestart: () {
               Navigator.pop(context); // Close victory screen
@@ -230,6 +232,9 @@ class _GameScreenState extends State<GameScreen> {
                     setState(() {
                       _currentLevel = nextLvl;
                       _initGame();
+                    });
+                    SharedPreferences.getInstance().then((prefs) {
+                      prefs.setInt('last_played_level_id', nextLvl.id);
                     });
                   }
                 : null,
@@ -248,10 +253,9 @@ class _GameScreenState extends State<GameScreen> {
 
   void _resetGame() {
     AudioManager.playClick();
-    debugPrint('[GameScreen] Resetting level ${_currentLevel.id}...');
     setState(() {
       gameState.reset();
-      _elapsed = Duration.zero;
+      _elapsedNotifier.value = Duration.zero;
       _hintUsageCount = 0;
       _hintCooldownRemaining = 0;
       _cooldownTimer?.cancel();
@@ -864,18 +868,27 @@ class _GameScreenState extends State<GameScreen> {
           padding: const EdgeInsets.symmetric(vertical: 10.0),
           child: Column(
             children: [
-              // Header panel
-              LinkedInHeader(
-                elapsed: _elapsed,
-                streak: _streak,
-                levelId: _currentLevel.id,
-                themeColor: _currentLevel.themeColor,
-                onReset: _resetGame,
-                onShowLevels: _openLevelsPage,
-                onHelp: _showHelp,
-                onSettings: _showSettings,
+              // Header panel — only rebuilds when elapsed time changes
+              ValueListenableBuilder<Duration>(
+                valueListenable: _elapsedNotifier,
+                builder: (context, elapsed, _) {
+                  return LinkedInHeader(
+                    elapsed: elapsed,
+                    streak: _streak,
+                    levelId: _currentLevel.id,
+                    themeColor: _currentLevel.themeColor,
+                    onReset: _resetGame,
+                    onShowLevels: _openLevelsPage,
+                    onHelp: _showHelp,
+                    onSettings: _showSettings,
+                  );
+                },
               ),
               const Divider(height: 1, color: Color(0xFFE0E0E0)),
+
+              // ── Top Banner Ad ──────────────────────────────────────────
+              AdManager.buildBannerAd(),
+              // ──────────────────────────────────────────────────────────
               
               // Grid gameplay canvas
               Expanded(
@@ -886,6 +899,10 @@ class _GameScreenState extends State<GameScreen> {
                 ),
               ),
               
+              // ── Bottom Banner Ad (Placed directly above Undo/Hint control buttons) ──
+              AdManager.buildBannerAd(),
+              // ──────────────────────────────────────────────────────────
+
               // Bottom UI
               ListenableBuilder(
                 listenable: gameState,

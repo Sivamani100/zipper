@@ -55,42 +55,34 @@ class _LevelSelectorScreenState extends State<LevelSelectorScreen> {
   final List<ChapterData> chapters = const [
     ChapterData(
       chapterNumber: 1,
-      title: 'The Internship',
-      difficulty: 'Intro (4x4 Grid)',
+      title: 'The Ascent',
+      difficulty: 'Hard (6x6 Grid)',
       startLevel: 1,
-      endLevel: 10,
-      themeColor: Color(0xFF00A3E0), // Cyan/Blue
+      endLevel: 80,
+      themeColor: Color(0xFFE52521), // Red
     ),
     ChapterData(
       chapterNumber: 2,
-      title: 'The Cubicle',
-      difficulty: 'Easy (5x5 Grid)',
-      startLevel: 11,
-      endLevel: 30,
-      themeColor: Color(0xFF43B02A), // Green
-    ),
-    ChapterData(
-      chapterNumber: 3,
-      title: 'Senior Management',
-      difficulty: 'Medium (6x6 Grid)',
-      startLevel: 31,
-      endLevel: 80,
+      title: 'The Core',
+      difficulty: 'Harder (7x7 Grid)',
+      startLevel: 81,
+      endLevel: 200,
       themeColor: Color(0xFFF39200), // Orange
     ),
     ChapterData(
-      chapterNumber: 4,
-      title: 'Executive Boardroom',
-      difficulty: 'Hard (7x7 Grid)',
-      startLevel: 81,
-      endLevel: 150,
-      themeColor: Color(0xFFD61A5E), // Pink
+      chapterNumber: 3,
+      title: 'The Peak',
+      difficulty: 'Hardest (8x8 Grid)',
+      startLevel: 201,
+      endLevel: 320,
+      themeColor: Color(0xFF43B02A), // Green
     ),
     ChapterData(
-      chapterNumber: 5,
-      title: 'The Corner Office (CEO)',
-      difficulty: 'Expert (8x8 Grid)',
-      startLevel: 151,
-      endLevel: 300,
+      chapterNumber: 4,
+      title: 'The Summit (Grandmaster)',
+      difficulty: 'Grandmaster (9x9 Grid)',
+      startLevel: 321,
+      endLevel: 400,
       themeColor: Color(0xFF7F44AB), // Purple
     ),
   ];

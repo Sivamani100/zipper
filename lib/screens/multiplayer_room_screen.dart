@@ -5,10 +5,10 @@ import 'package:google_fonts/google_fonts.dart';
 import '../game/zip_game.dart';
 import '../models/game_state.dart';
 import '../models/level_data.dart';
-import '../models/level_model.dart';
 import '../services/supabase_service.dart';
 import '../utils/audio_manager.dart';
 import '../widgets/control_panel.dart';
+import '../services/ad_manager.dart';
 
 class MultiplayerRoomScreen extends StatefulWidget {
   final String roomId;
@@ -29,6 +29,7 @@ class _MultiplayerRoomScreenState extends State<MultiplayerRoomScreen> {
   StreamSubscription? _roomSub;
   var _messages = <Map<String, dynamic>>[];
   StreamSubscription? _msgSub;
+  bool _showingAd = false; // State field to track rewarded ad display
 
 
 
@@ -264,11 +265,24 @@ class _MultiplayerRoomScreenState extends State<MultiplayerRoomScreen> {
 
   void _requestNextLevel() async {
     AudioManager.playClick();
-    if (_roomData == null) return;
+    if (_roomData == null || _showingAd) return;
     
-    final isCreator = _roomData!['creator_id'] == SupabaseService.currentUser?.id;
-    debugPrint('[MultiplayerRoom] Client requested next level. Marking ready...');
-    await SupabaseService.updateReadyForNext(widget.roomId, isCreator, true);
+    setState(() => _showingAd = true);
+    
+    // Show a rewarded ad before proceeding to the next round with friends
+    AdManager.showRewardedAd(
+      onRewarded: () {
+        // Watched successfully
+      },
+      onAdDismissed: () async {
+        if (mounted) {
+          setState(() => _showingAd = false);
+          final isCreator = _roomData!['creator_id'] == SupabaseService.currentUser?.id;
+          debugPrint('[MultiplayerRoom] Client requested next level. Marking ready...');
+          await SupabaseService.updateReadyForNext(widget.roomId, isCreator, true);
+        }
+      },
+    );
   }
 
   @override
@@ -574,6 +588,10 @@ class _MultiplayerRoomScreenState extends State<MultiplayerRoomScreen> {
                 )
               : const Center(child: CircularProgressIndicator()),
         ),
+
+        // ── Banner Ad (Placed directly above Undo/Hint control buttons) ──
+        AdManager.buildBannerAd(),
+        // ──────────────────────────────────────────────────────────
 
         // Controls (Undo & Hint)
         if (_gameState != null)

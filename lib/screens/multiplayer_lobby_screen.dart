@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/supabase_service.dart';
 import 'multiplayer_room_screen.dart';
+import '../services/ad_manager.dart';
 
 class MultiplayerLobbyScreen extends StatefulWidget {
   final VoidCallback onSignOut;
@@ -377,7 +378,7 @@ class _MultiplayerLobbyScreenState extends State<MultiplayerLobbyScreen> {
                       child: _rooms.isEmpty
                           ? ListView(
                               children: [
-                                SizedBox(height: 40),
+                                const SizedBox(height: 40),
                                 Center(
                                   child: Text(
                                     'No active match rooms found.\nCreate one above to challenge a friend!',
@@ -480,6 +481,9 @@ class _MultiplayerLobbyScreenState extends State<MultiplayerLobbyScreen> {
                               },
                             ),
                     ),
+                    // ── Lobby Bottom Banner Ad (Full Screen Width, 80px custom height) ────
+                    AdManager.buildBannerAd(),
+                    // ───────────────────────────────────────────────────────────────────
                   ],
                 ),
               ),

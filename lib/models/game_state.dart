@@ -251,7 +251,7 @@ class GameState extends ChangeNotifier {
     AudioManager.playClick();
   }
 
-  // Apply a hint: extends the path by 1 cell matching the solution path
+  // Apply a hint: extends the path up to the next checkpoint matching the solution path
   void applyHint() {
     if (isSolved || solutionPath.isEmpty) return;
 
@@ -271,14 +271,43 @@ class GameState extends ChangeNotifier {
       path = List.from(solutionPath.sublist(0, matchLength));
     }
 
-    // Add the next correct step
-    if (matchLength < solutionPath.length) {
+    // Find the next checkpoint target
+    final targetNum = nextCheckpointTarget;
+    if (targetNum == -1) {
+      // All checkpoints reached, but maybe not all cells visited. Zip to end of solution.
       saveToUndoHistory();
-      path.add(solutionPath[matchLength]);
+      path = List.from(solutionPath);
       checkCompletion();
       notifyListeners();
       AudioManager.playClick();
+      return;
     }
+
+    final targetPos = level.checkpoints[targetNum];
+    if (targetPos == null) return;
+
+    // Find where the target checkpoint is in the solutionPath
+    int targetIdxInSolution = solutionPath.indexOf(targetPos);
+    if (targetIdxInSolution == -1 || targetIdxInSolution < matchLength) {
+      // Fallback: just add one step
+      if (matchLength < solutionPath.length) {
+        saveToUndoHistory();
+        path.add(solutionPath[matchLength]);
+        checkCompletion();
+        notifyListeners();
+        AudioManager.playClick();
+      }
+      return;
+    }
+
+    // Add all cells from matchLength up to the target checkpoint index
+    saveToUndoHistory();
+    for (int i = matchLength; i <= targetIdxInSolution; i++) {
+      path.add(solutionPath[i]);
+    }
+    checkCompletion();
+    notifyListeners();
+    AudioManager.playClick();
   }
 
   // Truncate path to a specific position (e.g. on direct tap)

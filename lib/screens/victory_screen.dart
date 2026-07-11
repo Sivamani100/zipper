@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import '../models/level_model.dart';
+import '../services/ad_manager.dart';
 
 class VictoryScreen extends StatefulWidget {
   final Level level;
@@ -33,6 +34,7 @@ class _VictoryScreenState extends State<VictoryScreen> with TickerProviderStateM
 
   int _starsCount = 1;
   String _caption = '';
+  bool _showingAd = false; // Prevents double-tapping during ad display
 
   @override
   void initState() {
@@ -72,13 +74,11 @@ class _VictoryScreenState extends State<VictoryScreen> with TickerProviderStateM
       _caption = slowCaptions[_rand.nextInt(slowCaptions.length)];
     }
 
-    // Confetti animation loop
+    // Confetti animation loop — no addListener/setState; AnimatedBuilder in build() drives it
     _confettiController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 4),
-    )..addListener(() {
-        _updateConfetti();
-      })..repeat();
+    )..repeat();
 
     // Stars entrance animation
     _starsController = AnimationController(
@@ -100,7 +100,7 @@ class _VictoryScreenState extends State<VictoryScreen> with TickerProviderStateM
     // Initialize confetti particles once screen dimensions are available
     if (_particles.isEmpty) {
       final size = MediaQuery.of(context).size;
-      for (int i = 0; i < 70; i++) {
+      for (int i = 0; i < 40; i++) {  // Reduced from 70 — keeps it smooth on mid-range devices
         _particles.add(_generateParticle(size.width, size.height, isInitial: true));
       }
     }
@@ -130,9 +130,7 @@ class _VictoryScreenState extends State<VictoryScreen> with TickerProviderStateM
     );
   }
 
-  void _updateConfetti() {
-    if (!mounted) return;
-    final size = MediaQuery.of(context).size;
+  void _updateConfetti(Size size) {
     for (var p in _particles) {
       p.y += p.speed * sin(p.angle);
       p.x += p.speed * cos(p.angle);
@@ -152,7 +150,7 @@ class _VictoryScreenState extends State<VictoryScreen> with TickerProviderStateM
         p.height = newParticle.height;
       }
     }
-    setState(() {});
+    // No setState here — AnimatedBuilder drives the repaint efficiently
   }
 
   @override
@@ -169,8 +167,24 @@ class _VictoryScreenState extends State<VictoryScreen> with TickerProviderStateM
     return "$minutes:${twoDigits(seconds)}";
   }
 
-  String _getCaptionText() {
-    return _caption;
+  String _getCaptionText() => _caption;
+
+  /// Shows rewarded ad then calls [action]. If ad not ready, calls [action] directly.
+  void _runWithRewardedAd(VoidCallback action) {
+    if (_showingAd) return;
+    setState(() => _showingAd = true);
+
+    AdManager.showRewardedAd(
+      onRewarded: () {
+        // User watched the full ad — you can give a bonus here if desired
+      },
+      onAdDismissed: () {
+        if (mounted) {
+          setState(() => _showingAd = false);
+          action();
+        }
+      },
+    );
   }
 
   @override
@@ -182,10 +196,17 @@ class _VictoryScreenState extends State<VictoryScreen> with TickerProviderStateM
       backgroundColor: themeColor,
       body: Stack(
         children: [
-          // Confetti background CustomPaint
+          // Confetti background — only this canvas repaints on every frame, not the whole tree
           Positioned.fill(
-            child: CustomPaint(
-              painter: ConfettiPainter(particles: _particles),
+            child: AnimatedBuilder(
+              animation: _confettiController,
+              builder: (context, _) {
+                final size = MediaQuery.of(context).size;
+                _updateConfetti(size);
+                return CustomPaint(
+                  painter: ConfettiPainter(particles: _particles),
+                );
+              },
             ),
           ),
           
@@ -398,25 +419,42 @@ class _VictoryScreenState extends State<VictoryScreen> with TickerProviderStateM
                             ),
                             const SizedBox(height: 12),
                             
-                            // Next Level / Play Again Button (Bottom, premium solid black button)
+                            // Next Level / Play Again — shows rewarded ad first, then proceeds
                             ElevatedButton(
-                              onPressed: widget.onNextLevel ?? widget.onRestart,
+                              onPressed: _showingAd
+                                  ? null // Disabled while ad is showing
+                                  : () => _runWithRewardedAd(
+                                        widget.onNextLevel ?? widget.onRestart,
+                                      ),
                               style: ElevatedButton.styleFrom(
                                 foregroundColor: Colors.white,
-                                backgroundColor: Colors.black,
+                                backgroundColor: _showingAd
+                                    ? Colors.grey.shade600
+                                    : Colors.black,
                                 padding: const EdgeInsets.symmetric(vertical: 16),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(30),
                                 ),
                                 elevation: 0,
                               ),
-                              child: Text(
-                                widget.onNextLevel != null ? 'Next Level' : 'Play Again',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
+                              child: _showingAd
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : Text(
+                                      widget.onNextLevel != null
+                                          ? 'Next Level'
+                                          : 'Play Again',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
                             ),
                           ],
                         ),
